@@ -8,11 +8,13 @@ data = r.json()['data']
 hours = []
 prices = []
 for point in data :
-    prices.append(point['marketprice'])
+    prices.append(point['marketprice']/1000+0.17)
     print(point['marketprice'])
     hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000).strftime('%H'))
     print(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
 print(time.time())
 print(int(time.time()*1e6))
+plt.xlabel('hours')
+plt.ylabel('price €/kWh')
 plt.plot(hours, prices)
 plt.show()
