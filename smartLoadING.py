@@ -175,6 +175,7 @@ class Application(tk.Frame):
         plt.ylabel('price €/kWh')
         plt.plot(results.hours, results.prices)
         plt.gcf().autofmt_xdate()
+        plt.get_current_fig_manager().canvas.set_window_title("Results")
         plt.title("Market prices over your selected time frame")
         plt.show()
 
@@ -190,8 +191,3 @@ app.mainloop()
 #calculate charging time
 #print(time.time())
 #print(int(time.time()*1e3))
-
-def only_hours():
-    only_hours = []
-    for i in range(len(results.hours)):
-        only_hours.append(results.hours[i].hour)
