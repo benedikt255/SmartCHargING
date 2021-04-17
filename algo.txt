@@ -7,8 +7,8 @@ Inputvariablen:
 Methoden:
 - Anschlussleistung absenken
 
-- nur 1 Ladepunkt oder mehrere?
-- Batteriespeicher?
+- nur 1 Ladepunkt oder mehrere? -> nur 1
+- Batteriespeicher? -> erstmal nicht
 
 vgl. E-Mobility-Carree:
  - 58 Ladepunkte, Typ 2 Stecker
