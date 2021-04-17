@@ -79,4 +79,5 @@ for point in data :
 plt.xlabel('hours')
 plt.ylabel('price €/kWh')
 plt.plot(hours, prices)
+plt.gcf().autofmt_xdate()
 plt.show()
