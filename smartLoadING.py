@@ -2,7 +2,8 @@ import requests
 import time
 import datetime
 import matplotlib.pyplot as plt
-import tkinter as tk 
+import tkinter as tk
+import tkinter.messagebox as msg
 from tkcalendar import Calendar, DateEntry
 import math
 
@@ -65,9 +66,10 @@ class Calc:
             costDumb+=res[1]
         print(cost)
         print(costDumb)
-        print(SoC)
-        print(SoCDumb)
-        print((config.endSoC-config.startSoC)*0.01*self.config.capacity*0.26)
+        savings = round((costDumb - cost)*100,2)
+        root = tk.Tk()
+        root.withdraw()
+        msg.showinfo(title="Congratulations", message="You haved saved " + str(savings) + " cents")
         return results
 
 def isostring_from_calendar_hour_minute(date, hour, minute):
@@ -140,13 +142,14 @@ class Application(tk.Frame):
         plt.ylabel('price €/kWh')
         plt.plot(results.hours, results.prices)
         plt.gcf().autofmt_xdate()
+plt.title("Market prices over your selected time frame")
         plt.show()
 
 config = Config()
 # Excecute Tkinter
 root = tk.Tk()
 app = Application(master=root, config=config)
-app.master.title("config")
+app.master.title("Savings Calculator")
 app.mainloop()
 
 
