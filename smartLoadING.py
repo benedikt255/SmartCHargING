@@ -62,8 +62,13 @@ class Application(tk.Frame):
         temp = tk.DoubleVar(value=config.chargePower)
         self.chargePower=tk.Spinbox(self, from_=1, to=22,increment=1, width=3, textvariable=temp)
         self.chargePower.grid(row=6, column=1)   
+        self.l6 = tk.Label(self, text ="capacity /kWh")
+        self.l6.grid(row=7, column=0, sticky='nw')
+        temp = tk.DoubleVar(value=config.capacity)
+        self.capacity=tk.Spinbox(self, from_=1, to=130,increment=1, width=3, textvariable=temp)
+        self.capacity.grid(row=7, column=1)   
         self.quit = tk.Button(self, text="apply", command=self.quit_action)
-        self.quit.grid(row=7)
+        self.quit.grid(row=8)
 
     def quit_action(self):
         self.config.startTime= datetime.datetime.fromisoformat(isostring_from_calendar_hour_minute(self.calBegin.get_date(), self.hourBegin.get(), self.minuteBegin.get()))
@@ -71,6 +76,7 @@ class Application(tk.Frame):
         self.config.chargePower= float(self.chargePower.get())
         self.config.startSoC= float(self.startSoC.get())
         self.config.endSoC= float(self.endSoC.get())
+        self.config.capacity= float(self.capacity.get())
         self.master.destroy()
 
 config = Config()
@@ -79,9 +85,6 @@ root = tk.Tk()
 app = Application(master=root, config=config)
 app.master.title("config")
 app.mainloop()
-
-
-#print(config)
 
 data = []
 startTime = int(config.startTime.timestamp()*1e3)
