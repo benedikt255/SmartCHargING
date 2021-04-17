@@ -73,14 +73,14 @@ class Calc:
         SoCDumb=config.startSoC
         SoC=config.startSoC
         i=0
-        for point in data :
+        for point in data:
             price=point['marketprice']/1000+0.21
             period=float((datetime.datetime.fromtimestamp(point['end_timestamp']/1000)-datetime.datetime.fromtimestamp(point['start_timestamp']/1000)).seconds)/3600 #period in hours
             results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrechnung von €/MWh zu 
             results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
             results.SoC=SoC
             results.solarPower.append(0.85*power[i][1]*config.solarPeakPower/period)
-            results.charging=point['marketprice'] < threshold
+            results.charging.append(self.config.chargePower if point['marketprice'] < threshold else 0)
             #calculate SoC and price
             if point['marketprice'] < threshold:
                 res=self.chargePeriod(SoC, period, price)
