@@ -4,6 +4,7 @@ import datetime
 import matplotlib.pyplot as plt
 import tkinter as tk 
 from tkcalendar import Calendar, DateEntry
+import math
 
 class Config:
     capacity=50
@@ -17,6 +18,43 @@ class Results:
     hours=[]
     prices=[]
     SoC=[]
+
+
+
+def charge(config, SoC, period):
+    SoCnew=min(config.endSoC, (period*config.chargePower)/config.capacity*100+SoC)
+    price=(SoCnew-SoC)*0.01
+
+class Calc:
+
+    def __init__(self, config=None):
+        self.config = config
+
+    def getData(self):
+        startTime = int(self.config.startTime.timestamp()*1e3)
+        endTime = int(self.config.endTime.timestamp()*1e3)
+        r = requests.get('https://api.awattar.de/v1/marketdata?start='+str(startTime)+'&end='+str(endTime))
+        return r.json()['data']
+    def charge(self):
+        results=Results()
+        chargeTime=(config.endSoC-config.startSoC)*0.01*config.capacity/config.chargePower
+        #sort data pricewise
+        elements=sorted(data,key=lambda point: point['marketprice'])
+        threshold=elements[min(math.ceil(chargeTime),len(elements)-1)]
+        chargePrice=0;
+        chargePriceDumb=0;
+        SoCDumb=config.startSoC;
+        SoC=config.startSoC;
+
+        for point in data :
+            results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrchnung von €/MWh zu 
+            results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
+            results.SoC=SoC
+            #calculate SoC and price
+            period=float((datetime.datetime.fromtimestamp(point['end_timestamp']/1000)-datetime.datetime.fromtimestamp(point['start_timestamp']/1000)).seconds)/3600 #period in hours
+            SoC=min(config.endSoC, (period*config.chargePower)/config.capacity*100+SoC)
+            SoCDumb=min(config.endSoC, (period*config.chargePower)/config.capacity*100+SoC)
+        return results
 
 def isostring_from_calendar_hour_minute(date, hour, minute):
     items = date.split(".")
@@ -91,21 +129,12 @@ app = Application(master=root, config=config)
 app.master.title("config")
 app.mainloop()
 
-data = []
-startTime = int(config.startTime.timestamp()*1e3)
-endTime = int(config.endTime.timestamp()*1e3)
-r = requests.get('https://api.awattar.de/v1/marketdata?start='+str(startTime)+'&end='+str(endTime))
-data = r.json()['data']
-results=Results()
-for point in data :
-    results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrchnung von €/MWh zu 
-    #print(point['marketprice'])
-    results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
-    #print(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
+
+calc = Calc(config)
+data = calc.getData()
+results=calc.charge()
+    
 #calculate charging time
-chargeTime=(config.endSoC-config.startSoC)*0.01*config.capacity/config.chargePower
-#sort data pricewise
-elements=sorted(data,key=lambda point: point['marketprice'])
 #print(time.time())
 #print(int(time.time()*1e3))
 
