@@ -20,6 +20,7 @@ class Results:
     prices=[]
     SoC=[]
     charging=[]
+    savings=0
 
 class Calc:
 
@@ -66,10 +67,7 @@ class Calc:
             costDumb+=res[1]
         print(cost)
         print(costDumb)
-        savings = round((costDumb - cost)*100,2)
-        root = tk.Tk()
-        root.withdraw()
-        msg.showinfo(title="Congratulations", message="You haved saved " + str(savings) + " cents")
+        results.savings = round((costDumb - cost)*100,2)
         return results
 
 def isostring_from_calendar_hour_minute(date, hour, minute):
@@ -138,6 +136,7 @@ class Application(tk.Frame):
         self.config.capacity= float(self.capacity.get())
         calc = Calc(config)
         results=calc.charge()
+        msg.showinfo(title="Congratulations", message="You haved saved " + str(results.savings) + " cents")
         plt.xlabel('hours')
         plt.ylabel('price €/kWh')
         plt.plot(results.hours, results.prices)
