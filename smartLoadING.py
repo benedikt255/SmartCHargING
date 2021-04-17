@@ -12,7 +12,7 @@ data = r.json()['data']
 hours = []
 prices = []
 for point in data :
-    prices.append(point['marketprice']/1000+0.17)
+    prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe
     print(point['marketprice'])
     hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
     print(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
