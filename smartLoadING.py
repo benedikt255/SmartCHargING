@@ -2,7 +2,8 @@ import requests
 import time
 import datetime
 import matplotlib.pyplot as plt
-import tkinter as tk 
+import tkinter as tk
+import tkinter.messagebox as msg
 from tkcalendar import Calendar, DateEntry
 import math
 
@@ -62,6 +63,8 @@ class Calc:
             costDumb+=res[1]
         print(cost)
         print(costDumb)
+        savings = round((costDumb - cost)*100,2)
+        msg.showinfo(title="Congratulations", message="You haved saved " + str(savings) + " cents")
         return results
 
 def isostring_from_calendar_hour_minute(date, hour, minute):
