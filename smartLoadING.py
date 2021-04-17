@@ -97,6 +97,12 @@ for point in data :
     #print(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
 #print(time.time())
 #print(int(time.time()*1e3))
+
+def only_hours():
+    only_hours = []
+    for i in range(len(hours)):
+        only_hours.append(hours[i].hour)
+
 plt.xlabel('hours')
 plt.ylabel('price €/kWh')
 plt.plot(hours, prices)
