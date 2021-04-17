@@ -55,7 +55,7 @@ class Calc:
             results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrchnung von €/MWh zu 
             results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
             results.SoC=SoC
-            results.charging=point['marketprice'] < threshold
+            results.charging.append(point['marketprice'] < threshold)
             #calculate SoC and price
             period=float((datetime.datetime.fromtimestamp(point['end_timestamp']/1000)-datetime.datetime.fromtimestamp(point['start_timestamp']/1000)).seconds)/3600 #period in hours
             if point['marketprice'] < threshold:
@@ -140,6 +140,11 @@ class Application(tk.Frame):
         plt.xlabel('hours')
         plt.ylabel('price €/kWh')
         plt.plot(results.hours, results.prices)
+        is_charging = Results().charging
+        for i in is_charging:
+            print(is_charging[i])
+            if is_charging[i] is True:
+                plt.vlines(results.hours[i], 0, results.prices[i], colors=red, linestyles='solid', label='Loading')
         plt.gcf().autofmt_xdate()
         plt.get_current_fig_manager().canvas.set_window_title("Results")
         plt.title("Market prices over your selected time frame")
