@@ -3,7 +3,9 @@ import time
 import datetime
 import matplotlib.pyplot as plt
 
-r = requests.get('https://api.awattar.de/v1/marketdata')
+startTime = int(time.time()*1e3)
+endTime = int((time.time()+ 24*3600)*1e3)
+r = requests.get('https://api.awattar.de/v1/marketdata?start='+str(startTime)+'&end='+str(endTime))
 data = r.json()['data']
 hours = []
 prices = []
