@@ -18,6 +18,7 @@ class Results:
     hours=[]
     prices=[]
     SoC=[]
+    charging=[]
 
 class Calc:
 
@@ -36,6 +37,7 @@ class Calc:
         return (SoCnew,cost)
 
     def charge(self):
+        data=self.getData()
         results=Results()
         chargeTime=(config.endSoC-config.startSoC)*0.01*config.capacity/config.chargePower
         #sort data pricewise
@@ -51,6 +53,7 @@ class Calc:
             results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrchnung von €/MWh zu 
             results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
             results.SoC=SoC
+            results.charging=point['marketprice'] < threshold
             #calculate SoC and price
             period=float((datetime.datetime.fromtimestamp(point['end_timestamp']/1000)-datetime.datetime.fromtimestamp(point['start_timestamp']/1000)).seconds)/3600 #period in hours
             if point['marketprice'] < threshold:
@@ -62,6 +65,9 @@ class Calc:
             costDumb+=res[1]
         print(cost)
         print(costDumb)
+        print(SoC)
+        print(SoCDumb)
+        print((config.endSoC-config.startSoC)*0.01*self.config.capacity*0.26)
         return results
 
 def isostring_from_calendar_hour_minute(date, hour, minute):
@@ -128,7 +134,13 @@ class Application(tk.Frame):
         self.config.startSoC= float(self.startSoC.get())
         self.config.endSoC= float(self.endSoC.get())
         self.config.capacity= float(self.capacity.get())
-        self.master.destroy()
+        calc = Calc(config)
+        results=calc.charge()
+        plt.xlabel('hours')
+        plt.ylabel('price €/kWh')
+        plt.plot(results.hours, results.prices)
+        plt.gcf().autofmt_xdate()
+        plt.show()
 
 config = Config()
 # Excecute Tkinter
@@ -138,9 +150,6 @@ app.master.title("config")
 app.mainloop()
 
 
-calc = Calc(config)
-data = calc.getData()
-results=calc.charge()
     
 #calculate charging time
 #print(time.time())
@@ -150,9 +159,3 @@ def only_hours():
     only_hours = []
     for i in range(len(results.hours)):
         only_hours.append(results.hours[i].hour)
-
-plt.xlabel('hours')
-plt.ylabel('price €/kWh')
-plt.plot(results.hours, results.prices)
-plt.gcf().autofmt_xdate()
-plt.show()
