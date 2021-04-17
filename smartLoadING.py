@@ -10,7 +10,7 @@ class Config:
     capacity=50
     startSoC=20
     endSoC=80
-    chargePower=2 #in kW
+    chargePower=11 #in kW
     startTime=datetime.datetime.fromtimestamp(time.time())
     endTime=datetime.datetime.fromtimestamp(time.time()+24*3600)
 
@@ -18,12 +18,6 @@ class Results:
     hours=[]
     prices=[]
     SoC=[]
-
-
-
-def charge(config, SoC, period):
-    SoCnew=min(config.endSoC, (period*config.chargePower)/config.capacity*100+SoC)
-    price=(SoCnew-SoC)*0.01
 
 class Calc:
 
@@ -35,25 +29,39 @@ class Calc:
         endTime = int(self.config.endTime.timestamp()*1e3)
         r = requests.get('https://api.awattar.de/v1/marketdata?start='+str(startTime)+'&end='+str(endTime))
         return r.json()['data']
+
+    def chargePeriod(self, SoC, period, price):
+        SoCnew=min(self.config.endSoC, (period*self.config.chargePower)/self.config.capacity*100+SoC)
+        cost=(SoCnew-SoC)*0.01*self.config.capacity*price
+        return (SoCnew,cost)
+
     def charge(self):
         results=Results()
         chargeTime=(config.endSoC-config.startSoC)*0.01*config.capacity/config.chargePower
         #sort data pricewise
         elements=sorted(data,key=lambda point: point['marketprice'])
-        threshold=elements[min(math.ceil(chargeTime),len(elements)-1)]
-        chargePrice=0;
-        chargePriceDumb=0;
-        SoCDumb=config.startSoC;
-        SoC=config.startSoC;
+        threshold=elements[min(math.ceil(chargeTime),len(elements)-1)]['marketprice']
+        cost=0
+        costDumb=0
+        SoCDumb=config.startSoC
+        SoC=config.startSoC
 
         for point in data :
+            price=point['marketprice']/1000+0.21
             results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrchnung von €/MWh zu 
             results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
             results.SoC=SoC
             #calculate SoC and price
             period=float((datetime.datetime.fromtimestamp(point['end_timestamp']/1000)-datetime.datetime.fromtimestamp(point['start_timestamp']/1000)).seconds)/3600 #period in hours
-            SoC=min(config.endSoC, (period*config.chargePower)/config.capacity*100+SoC)
-            SoCDumb=min(config.endSoC, (period*config.chargePower)/config.capacity*100+SoC)
+            if point['marketprice'] < threshold:
+                res=self.chargePeriod(SoC, period, price)
+                SoC=res[0]
+                cost+=res[1]
+            res=self.chargePeriod(SoCDumb, period, price)
+            SoCDumb=res[0]
+            costDumb+=res[1]
+        print(cost)
+        print(costDumb)
         return results
 
 def isostring_from_calendar_hour_minute(date, hour, minute):
