@@ -64,6 +64,8 @@ class Calc:
         print(cost)
         print(costDumb)
         savings = round((costDumb - cost)*100,2)
+        root = tk.Tk()
+        root.withdraw()
         msg.showinfo(title="Congratulations", message="You haved saved " + str(savings) + " cents")
         return results
 
@@ -137,7 +139,7 @@ config = Config()
 # Excecute Tkinter
 root = tk.Tk()
 app = Application(master=root, config=config)
-app.master.title("config")
+app.master.title("Savings Calculator")
 app.mainloop()
 
 
@@ -158,4 +160,5 @@ plt.xlabel('hours')
 plt.ylabel('price €/kWh')
 plt.plot(results.hours, results.prices)
 plt.gcf().autofmt_xdate()
+plt.title("Market prices over your selected time frame")
 plt.show()
