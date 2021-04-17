@@ -6,6 +6,10 @@ import tkinter as tk
 from tkcalendar import Calendar, DateEntry
 
 class Config:
+    capacity=50
+    startSoC=20
+    endSoC=80
+    chargePower=2 #in kW
     startTime=datetime.datetime.fromtimestamp(time.time())
     endTime=datetime.datetime.fromtimestamp(time.time()+24*3600)
 
@@ -43,12 +47,30 @@ class Application(tk.Frame):
         temp = tk.DoubleVar(value=30)
         self.minuteEnd=tk.Spinbox(self, from_=0, to=45,increment=15, width=2, textvariable=temp)
         self.minuteEnd.grid(row=3, column=3)   
+        self.l3 = tk.Label(self, text ="StartSoC /%")
+        self.l3.grid(row=4, column=0, sticky='nw')
+        temp = tk.DoubleVar(value=config.startSoC)
+        self.startSoC=tk.Spinbox(self, from_=0, to=100,increment=1, width=3, textvariable=temp)
+        self.startSoC.grid(row=4, column=1)
+        self.l4 = tk.Label(self, text ="EndSoC /%")
+        self.l4.grid(row=5, column=0, sticky='nw')
+        temp = tk.DoubleVar(value=config.endSoC)
+        self.endSoC=tk.Spinbox(self, from_=0, to=100,increment=1, width=3, textvariable=temp)
+        self.endSoC.grid(row=5, column=1)   
+        self.l5 = tk.Label(self, text ="Charging power /kW")
+        self.l5.grid(row=6, column=0, sticky='nw')
+        temp = tk.DoubleVar(value=config.chargePower)
+        self.chargePower=tk.Spinbox(self, from_=1, to=22,increment=1, width=3, textvariable=temp)
+        self.chargePower.grid(row=6, column=1)   
         self.quit = tk.Button(self, text="apply", command=self.quit_action)
-        self.quit.grid(row=4)
+        self.quit.grid(row=7)
 
     def quit_action(self):
         self.config.startTime= datetime.datetime.fromisoformat(isostring_from_calendar_hour_minute(self.calBegin.get_date(), self.hourBegin.get(), self.minuteBegin.get()))
         self.config.endTime= datetime.datetime.fromisoformat(isostring_from_calendar_hour_minute(self.calEnd.get_date(), self.hourEnd.get(), self.minuteEnd.get()))
+        self.config.chargePower= float(self.chargePower.get())
+        self.config.startSoC= float(self.startSoC.get())
+        self.config.endSoC= float(self.endSoC.get())
         self.master.destroy()
 
 config = Config()
@@ -59,8 +81,7 @@ app.master.title("config")
 app.mainloop()
 
 
-print(config.startTime)
-print(config.endTime)
+#print(config)
 
 data = []
 startTime = int(config.startTime.timestamp()*1e3)
