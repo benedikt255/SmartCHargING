@@ -11,7 +11,7 @@ Annahmen:
 
 vgl. E-Mobility-Carree:
  - 58 Ladepunkte, Typ 2 Stecker
- - Batteriespeoicher (2x19 kWh)
+ - Batteriespeicher (2x19 kWh)
  - 45 E-Autos (24 VW e-Golf, 21 BMW i3)
  - Max 11 kW pro Ladepunkt
  - Ergebnis: nie mehr als 13 parallele Ladegänge bei 58 Ladevorgängen
