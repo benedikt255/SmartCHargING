@@ -39,8 +39,9 @@ class SolarData:
             for row in reader:
                 dt = datetime.datetime.fromisoformat(row[0])
                 if dt >= self.config.startTime and dt <= self.config.endTime:
-                    power.append([dt, 2.7*float(row[1])])
+                    power.append([dt, 2.7e-3*float(row[1])])
         return power
+        
 
 
 class Calc:
@@ -62,7 +63,7 @@ class Calc:
         data=self.getData()
         results=Results()
         solar = SolarData(config)
-        solar.calc()
+        power=solar.calc()
         chargeTime=(config.endSoC-config.startSoC)*0.01*config.capacity/config.chargePower
         #sort data pricewise
         elements=sorted(data,key=lambda point: point['marketprice'])
@@ -71,15 +72,16 @@ class Calc:
         costDumb=0
         SoCDumb=config.startSoC
         SoC=config.startSoC
-
+        i=0
         for point in data :
             price=point['marketprice']/1000+0.21
+            period=float((datetime.datetime.fromtimestamp(point['end_timestamp']/1000)-datetime.datetime.fromtimestamp(point['start_timestamp']/1000)).seconds)/3600 #period in hours
             results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrechnung von €/MWh zu 
             results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
             results.SoC=SoC
+            results.solarPower.append(0.85*power[i][1]*config.solarPeakPower/period)
             results.charging=point['marketprice'] < threshold
             #calculate SoC and price
-            period=float((datetime.datetime.fromtimestamp(point['end_timestamp']/1000)-datetime.datetime.fromtimestamp(point['start_timestamp']/1000)).seconds)/3600 #period in hours
             if point['marketprice'] < threshold:
                 res=self.chargePeriod(SoC, period, price)
                 SoC=res[0]
@@ -87,6 +89,7 @@ class Calc:
             res=self.chargePeriod(SoCDumb, period, price)
             SoCDumb=res[0]
             costDumb+=res[1]
+            i+=1
         print(cost)
         print(costDumb)
         results.savings = round((costDumb - cost)*100,2)
