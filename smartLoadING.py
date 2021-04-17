@@ -13,6 +13,11 @@ class Config:
     startTime=datetime.datetime.fromtimestamp(time.time())
     endTime=datetime.datetime.fromtimestamp(time.time()+24*3600)
 
+class Results:
+    hours=[]
+    prices=[]
+    SoC=[]
+
 def isostring_from_calendar_hour_minute(date, hour, minute):
     items = date.split(".")
     return '20'+items[2]+'-'+items[1]+'-'+items[0]+' '+format(float(hour), '02.0f')+':'+format(float(minute), '02.0f')
@@ -91,23 +96,26 @@ startTime = int(config.startTime.timestamp()*1e3)
 endTime = int(config.endTime.timestamp()*1e3)
 r = requests.get('https://api.awattar.de/v1/marketdata?start='+str(startTime)+'&end='+str(endTime))
 data = r.json()['data']
-hours = []
-prices = []
+results=Results()
 for point in data :
-    prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrchnung von €/MWh zu 
+    results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrchnung von €/MWh zu 
     #print(point['marketprice'])
-    hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
+    results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
     #print(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
+#calculate charging time
+chargeTime=(config.endSoC-config.startSoC)*0.01*config.capacity/config.chargePower
+#sort data pricewise
+elements=sorted(data,key=lambda point: point['marketprice'])
 #print(time.time())
 #print(int(time.time()*1e3))
 
 def only_hours():
     only_hours = []
-    for i in range(len(hours)):
-        only_hours.append(hours[i].hour)
+    for i in range(len(results.hours)):
+        only_hours.append(results.hours[i].hour)
 
 plt.xlabel('hours')
 plt.ylabel('price €/kWh')
-plt.plot(hours, prices)
+plt.plot(results.hours, results.prices)
 plt.gcf().autofmt_xdate()
 plt.show()
