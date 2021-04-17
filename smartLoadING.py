@@ -142,7 +142,7 @@ class Application(tk.Frame):
         plt.ylabel('price €/kWh')
         plt.plot(results.hours, results.prices)
         plt.gcf().autofmt_xdate()
-plt.title("Market prices over your selected time frame")
+        plt.title("Market prices over your selected time frame")
         plt.show()
 
 config = Config()
