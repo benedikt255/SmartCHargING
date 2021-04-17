@@ -6,12 +6,15 @@ import tkinter as tk
 import tkinter.messagebox as msg
 from tkcalendar import Calendar, DateEntry
 import math
+import csv
 
 class Config:
-    capacity=50
-    startSoC=20
-    endSoC=80
+    capacity=50 #in kWh
+    startSoC=20 #in %
+    endSoC=80 #in %
     chargePower=11 #in kW
+    solarPeakPower=0 #in kW
+    solarCost=8 #in ct/kWh
     startTime=datetime.datetime.fromtimestamp(time.time())
     endTime=datetime.datetime.fromtimestamp(time.time()+24*3600)
 
@@ -20,10 +23,27 @@ class Results:
     prices=[]
     SoC=[]
     charging=[]
+    solarPower=[]
     savings=0
 
-class Calc:
+#efficiency: 100% ^= 1000W/m²
+#eta*A=P --> Wh/kWP einfach
+class SolarData:
+    def __init__(self, config=None):
+        self.config = config
 
+    def calc(self):
+        power=[]
+        with open('solar_short.csv', newline='') as f:
+            reader = csv.reader(f, delimiter=',')
+            for row in reader:
+                dt = datetime.datetime.fromisoformat(row[0])
+                if dt >= self.config.startTime and dt <= self.config.endTime:
+                    power.append([dt, 2.7*float(row[1])])
+        return power
+
+
+class Calc:
     def __init__(self, config=None):
         self.config = config
 
@@ -41,6 +61,8 @@ class Calc:
     def charge(self):
         data=self.getData()
         results=Results()
+        solar = SolarData(config)
+        solar.calc()
         chargeTime=(config.endSoC-config.startSoC)*0.01*config.capacity/config.chargePower
         #sort data pricewise
         elements=sorted(data,key=lambda point: point['marketprice'])
@@ -52,7 +74,7 @@ class Calc:
 
         for point in data :
             price=point['marketprice']/1000+0.21
-            results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrchnung von €/MWh zu 
+            results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrechnung von €/MWh zu 
             results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
             results.SoC=SoC
             results.charging=point['marketprice'] < threshold
@@ -124,8 +146,18 @@ class Application(tk.Frame):
         temp = tk.DoubleVar(value=config.capacity)
         self.capacity=tk.Spinbox(self, from_=1, to=130,increment=1, width=3, textvariable=temp)
         self.capacity.grid(row=7, column=1)   
+        self.l7 = tk.Label(self, text ="solar peak power /kW")
+        self.l7.grid(row=8, column=0, sticky='nw')
+        temp = tk.DoubleVar(value=config.solarPeakPower)
+        self.solarPeakPower=tk.Spinbox(self, from_=0, to=30,increment=0.5, width=3, textvariable=temp)
+        self.solarPeakPower.grid(row=8, column=1)   
+        self.l8 = tk.Label(self, text ="solar cost ct/kWh")
+        self.l8.grid(row=9, column=0, sticky='nw')
+        temp = tk.DoubleVar(value=config.solarCost)
+        self.solarCost=tk.Spinbox(self, from_=1, to=30,increment=0.5, width=3, textvariable=temp)
+        self.solarCost.grid(row=9, column=1)   
         self.quit = tk.Button(self, text="apply", command=self.quit_action)
-        self.quit.grid(row=8)
+        self.quit.grid(row=10)
 
     def quit_action(self):
         self.config.startTime= datetime.datetime.fromisoformat(isostring_from_calendar_hour_minute(self.calBegin.get_date(), self.hourBegin.get(), self.minuteBegin.get()))
@@ -134,6 +166,8 @@ class Application(tk.Frame):
         self.config.startSoC= float(self.startSoC.get())
         self.config.endSoC= float(self.endSoC.get())
         self.config.capacity= float(self.capacity.get())
+        self.config.solarCost= float(self.solarCost.get())
+        self.config.solarPeakPower= float(self.solarPeakPower.get())
         calc = Calc(config)
         results=calc.charge()
         msg.showinfo(title="Congratulations", message="You haved saved " + str(results.savings) + " cents")
