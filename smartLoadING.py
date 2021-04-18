@@ -37,6 +37,15 @@ class Results:
     savings=0 # savings in €
     solarQuote=0 # % of charge contributed by solar
 
+    def __init__(self):
+        self.hours=[] # timestamp
+        self.prices=[] # price of energy in €
+        self.SoC=[] # SoC of the battery in %
+        self.charging=[] # power with which is charged
+        self.solarPower=[] # power produced by pv
+        self.savings=0 # savings in €
+        self.solarQuote=0 # % of charge contributed by solar
+
 #efficiency: 100% ^= 1000W/m²
 #eta*A=P --> Wh/kWP einfach
 class SolarData:
@@ -45,6 +54,8 @@ class SolarData:
 
     def __init__(self, config=None):
         self.config = config
+        self.intervall=0
+        self.power=[]
 
     def getData(self):
         self.power=[]
@@ -72,6 +83,8 @@ class MarketData:
 
     def __init__(self, config=None):
         self.config = config
+        self.intervall=0
+        self.data = []
 
     def getData(self):
         self.data = []
@@ -176,7 +189,7 @@ class Calc:
                 deltaSolar=solar.findItem(calcTime)[1] if solar.findItem(calcTime) != None else 0
                 maxPower=min(config.chargePower, (self.config.endSoC-SoC)/100*self.config.capacity/(calcIntervall.total_seconds()/3600))
                 currPowerSolar=min(deltaSolar*solarEfficiency*config.solarPeakPower/(calcIntervall.total_seconds()/3600), maxPower)
-                maxNetPower=min(maxPower-currPowerSolar, remainNetEnergy/(calcIntervall.total_seconds()/3600))
+                maxNetPower=max(min(maxPower-currPowerSolar, remainNetEnergy/(calcIntervall.total_seconds()/3600)),0)
                 currPowerNet= maxNetPower if (price > 0 and price<=threshold) else 0
                 remainNetEnergy-=currPowerNet*(calcIntervall.total_seconds()/3600)
                 results.prices.append(price)
@@ -289,7 +302,7 @@ class Application(tk.Frame):
         ax3.set_ylabel('SoC in percent', color='green')
         ax3.plot(results.hours, results.SoC, color='green')
         fig.tight_layout()
-        #plt.gcf().autofmt_xdate()
+        plt.gcf().autofmt_xdate()
         plt.get_current_fig_manager().canvas.set_window_title("Results")
         plt.title("Market prices over your selected time frame")
         plt.show()
