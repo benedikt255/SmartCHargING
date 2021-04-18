@@ -79,7 +79,7 @@ class Calc:
             results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrechnung von €/MWh zu 
             results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
             results.SoC=SoC
-            results.solarPower.append(0.85*power[i][1]*config.solarPeakPower/period)
+            results.solarPower.append(0.85*power[i][1]*config.solarPeakPower/period if len(power) > i else 0)
             results.charging.append(self.config.chargePower if point['marketprice'] < threshold else 0)
             #calculate SoC and price
             if point['marketprice'] < threshold:
