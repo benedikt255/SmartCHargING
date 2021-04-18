@@ -19,20 +19,23 @@ class Config:
     endTime=datetime.datetime.fromtimestamp(time.time()+24*3600)
 
 class Results:
-    hours=[]
-    prices=[]
-    SoC=[]
-    charging=[]
-    solarPower=[]
-    savings=0
+    hours=[] # timestamp
+    prices=[] # price of energy in ct
+    SoC=[] # SoC of the battery in %
+    charging=[] # power with which is charged
+    solarPower=[] # power produced by pv
+    savings=0 # savings in ct
+    solarQuote=0 # % of charge contributed by solar
 
 #efficiency: 100% ^= 1000W/m²
 #eta*A=P --> Wh/kWP einfach
 class SolarData:
+    intervall=0
+
     def __init__(self, config=None):
         self.config = config
 
-    def calc(self):
+    def getData(self):
         power=[]
         with open('solar_short.csv', newline='') as f:
             reader = csv.reader(f, delimiter=',')
@@ -40,19 +43,28 @@ class SolarData:
                 dt = datetime.datetime.fromisoformat(row[0])
                 if dt >= self.config.startTime and dt <= self.config.endTime:
                     power.append([dt, 2.7e-3*float(row[1])])
-        return power
-        
+        if len(power) > 0:
+            self.intervall=power[1][0]-power[0][0]
+        return power #kWh per intervall
 
+class MarketData:
+    intervall=0
 
-class Calc:
     def __init__(self, config=None):
         self.config = config
 
     def getData(self):
+        data = []
         startTime = int(self.config.startTime.timestamp()*1e3)
         endTime = int(self.config.endTime.timestamp()*1e3)
         r = requests.get('https://api.awattar.de/v1/marketdata?start='+str(startTime)+'&end='+str(endTime))
-        return r.json()['data']
+        data =r.json()['data']
+        return data    
+
+
+class Calc:
+    def __init__(self, config=None):
+        self.config = config    
 
     def chargePeriod(self, SoC, period, price):
         SoCnew=min(self.config.endSoC, (period*self.config.chargePower)/self.config.capacity*100+SoC)
@@ -60,39 +72,81 @@ class Calc:
         return (SoCnew,cost)
 
     def charge(self):
-        data=self.getData()
+        market = MarketData(config)
+        priceData=market.getData()
         results=Results()
         solar = SolarData(config)
-        power=solar.calc()
-        chargeTime=(config.endSoC-config.startSoC)*0.01*config.capacity/config.chargePower
-        #sort data pricewise
-        elements=sorted(data,key=lambda point: point['marketprice'])
-        threshold=elements[min(math.ceil(chargeTime),len(elements)-1)]['marketprice']
-        cost=0
-        costDumb=0
-        SoCDumb=config.startSoC
-        SoC=config.startSoC
-        i=0
-        for point in data:
-            price=point['marketprice']/1000+0.21
-            period=float((datetime.datetime.fromtimestamp(point['end_timestamp']/1000)-datetime.datetime.fromtimestamp(point['start_timestamp']/1000)).seconds)/3600 #period in hours
-            results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrechnung von €/MWh zu 
-            results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
-            results.SoC=SoC
-            results.solarPower.append(0.85*power[i][1]*config.solarPeakPower/period if len(power) > i else 0)
-            results.charging.append(self.config.chargePower if point['marketprice'] < threshold else 0)
-            #calculate SoC and price
-            if point['marketprice'] < threshold:
-                res=self.chargePeriod(SoC, period, price)
-                SoC=res[0]
-                cost+=res[1]
-            res=self.chargePeriod(SoCDumb, period, price)
-            SoCDumb=res[0]
-            costDumb+=res[1]
-            i+=1
-        print(cost)
-        print(costDumb)
-        results.savings = round((costDumb - cost)*100,2)
+        power=solar.getData()
+        #calculate power delivered py solar
+        solarEnergy=0
+        for energy in power:
+            solarEnergy+=energy[1]*0.85*config.solarPeakPower if energy[1]*0.85*config.solarPeakPower/(solar.intervall.total_seconds()/3600) <= config.chargePower else config.chargePower * solar.intervall.total_seconds()/3600
+        chargeEnergy=(config.endSoC-config.startSoC)*0.01*config.capacity
+        #use old algorythm when no solar power present
+        #1. sort data pricewise
+        #2. calculate charging time
+        #3. take price of charging time/intervall_length element as threshold
+        #4. charge in all intervalls cheaper than threshold
+        if solarEnergy == 0:
+            chargeTime=(config.endSoC-config.startSoC)*0.01*config.capacity/config.chargePower
+            #sort data pricewise
+            data = priceData
+            elements=sorted(data,key=lambda point: point['marketprice'])
+            threshold=elements[min(math.ceil(chargeTime),len(elements)-1)]['marketprice']
+            cost=0
+            costDumb=0
+            SoCDumb=config.startSoC
+            SoC=config.startSoC
+            i=0
+            for point in data:
+                price=point['marketprice']/1000+0.21
+                period=float((datetime.datetime.fromtimestamp(point['end_timestamp']/1000)-datetime.datetime.fromtimestamp(point['start_timestamp']/1000)).seconds)/3600 #period in hours
+                results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrechnung von €/MWh zu 
+                results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
+                results.SoC.append(SoC)
+                results.solarPower.append(0.85*power[i][1]*config.solarPeakPower/period if len(power) > i else 0)
+                results.charging.append(self.config.chargePower if point['marketprice'] < threshold else 0)
+                #calculate SoC and price
+                if point['marketprice'] < threshold:
+                    res=self.chargePeriod(SoC, period, price)
+                    SoC=res[0]
+                    cost+=res[1]
+                res=self.chargePeriod(SoCDumb, period, price)
+                SoCDumb=res[0]
+                costDumb+=res[1]
+                i+=1
+            print(cost)
+            print(costDumb)
+            results.savings = round((costDumb - cost)*100,2)
+            results.solarQuote=0
+        else:
+        #A) if solar is enough, use only solar
+        #B) 1. calculate missing energy
+        #   2. sort timeslots pricewise
+        #   3. calculate additional charging energy per timeslot till battery is full. limit to max charging power
+        #if solar is not enough calculate data for each timeslot
+            #sort data pricewise
+            calcIntervall=min(solar.intervall,market.intervall).total_seconds()/3600
+            priceData.sort(key=lambda point: point['marketprice'])
+            if chargeEnergy <= solarEnergy:
+                for point in power:
+                    price=point['marketprice']/1000+0.21
+                    period=float((datetime.datetime.fromtimestamp(point['end_timestamp']/1000)-datetime.datetime.fromtimestamp(point['start_timestamp']/1000)).seconds)/3600 #period in hours
+                    results.prices.append(point['marketprice']/1000+0.21) # + 21ct für Karlsruhe und Umrechnung von €/MWh zu 
+                    results.hours.append(datetime.datetime.fromtimestamp(point['start_timestamp']/1000))
+                    results.SoC.append(SoC)
+                    results.solarPower.append(0.85*power[i][1]*config.solarPeakPower/period if len(power) > i else 0)
+                    results.charging.append(self.config.chargePower if point['marketprice'] < threshold else 0)
+                    #calculate SoC and price
+                    if point['marketprice'] < threshold:
+                        res=self.chargePeriod(SoC, period, price)
+                        SoC=res[0]
+                        cost+=res[1]
+                    res=self.chargePeriod(SoCDumb, period, price)
+                    SoCDumb=res[0]
+                    costDumb+=res[1]
+                results.savings = round((costDumb - cost)*100,2)
+                results.solarQuote=0
         return results
 
 def isostring_from_calendar_hour_minute(date, hour, minute):
@@ -173,7 +227,7 @@ class Application(tk.Frame):
         self.config.solarPeakPower= float(self.solarPeakPower.get())
         calc = Calc(config)
         results=calc.charge()
-        msg.showinfo(title="Congratulations", message="You haved saved " + str(results.savings) + " cents")
+        msg.showinfo(title="Congratulations", message="You haved saved " + str(results.savings) + " cents\nYour pv contributed "+ str(results.solarQuote)+" percent of your charge")
         plt.xlabel('hours')
         plt.ylabel('price €/kWh')
         plt.plot(results.hours, results.prices)
