@@ -231,6 +231,11 @@ class Application(tk.Frame):
         plt.xlabel('hours')
         plt.ylabel('price €/kWh')
         plt.plot(results.hours, results.prices)
+        is_charging = Results().charging
+        for i in is_charging:
+            print(is_charging[i])
+            if is_charging[i] is True:
+                plt.vlines(results.hours[i], 0, results.prices[i], colors=red, linestyles='solid', label='Loading')
         plt.gcf().autofmt_xdate()
         plt.get_current_fig_manager().canvas.set_window_title("Results")
         plt.title("Market prices over your selected time frame")
